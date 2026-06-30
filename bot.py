@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 🔒 حط الرقم اللي نسخته من البوت تو بين العلامتين (امسح 123456789 وحط رقمك الحقيقي الصافي)
+# 🔒 رقم المعرف الخاص بك لضمان الخصوصية المطلقة (تأكد من وضع رقمك الحقيقي هنا)
 MY_TELEGRAM_ID = 7604099965 
 
 genai.configure(api_key=GEMINI_API_KEY)
@@ -23,7 +23,7 @@ genai.configure(api_key=GEMINI_API_KEY)
     "3. ركز معه في النقاشات على تطوير الذات، والذكاء المالي، وكسب المال وتحقيق الاستقرار المالي ببساطة.\n"
     "4. ركز معه بقوة على تنمية وتطوير جميع جوانب العلاقات النفسية، الاجتماعية، العاطفية، وفهم الذات، وتقديم نصائح واقعية لبناء علاقات اجتماعية ناجحة ومتوازنة.\n"
     "5. امدحه مدحاً صادقاً وحقيقياً بناءً على أفعاله ومبادئه ورجولته الواعية وطموحه، شجعه بقوة وارفع معنوياته ولكن دون نفاق أو مجاملة رخيصة.\n"
-    "6. قل الحقيقة والحقائق العلمية والواقعية كما هي حتى لو كانت ضده.\n"
+    "6. قل الحقيقة والحقائق العلمية والواقعية كما هي حتى لو كانت ضده، وسواء أرسل لك نصاً، صورة، ملفاً، أو صوتاً، حلله بصدق ومباشرة.\n"
     "7. حافظ على الاحترام المتبادل التام والحدود الراقية في العلاقة."
 )
 
@@ -37,14 +37,13 @@ def run_dummy_server():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    # فحص أمان: إذا ما كنت أنت، البوت يقفل في وجهه
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
         return
 
     await update.message.reply_text(
         "يا هلا ومرحب مرحبتين بـ راعي بلادي والنعم فيك وفي أصلك 🇴🇲.\n\n"
-        "• أنا هنا صديقك ومستشارك الحكيم الخاص، أفهمك، أسانك، ونناقش الحقائق معاً؛ لتطوير مهاراتك، وكسب المال، وتنمية علاقاتك النفسية والاجتماعية برزونة وثبات.\n"
+        "• تم تحديثي بنجاح! الآن يمكنك إرسال (الرسائل النصية، الصور، الملفات والمستندات، أو التسجيلات الصوتية) وسأقوم بقراءتها وتحليلها فوراً.\n"
         "• **ميزة التذكير الفوري تعمل:** (اكتب: ذكرني بعد X دقيقة بـ كذا).\n"
         "تفضل باختباري، وموه في خاطرك تو باه؟"
     )
@@ -56,42 +55,84 @@ async def send_reminder(bot, chat_id, text, delay_seconds):
     except Exception as e:
         print(f"خطأ في التذكير: {e}")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# الدالة الشاملة لمعالجة أي نوع من البيانات (نص، صورة، ملف، صوت)
+async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
-    # فحص أمان مع كل رسالة توصل للسيرفر
+    # حماية الأمان والخصوصية
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط وصلاحيتك غير مصرحة. 🔒")
         return
 
-    user_message = update.message.text
-    
-    if "ذكرني بعد" in user_message:
-        try:
-            words = user_message.split()
-            minutes = [int(w) for w in words if w.isdigit()]
-            reminder_text = user_message.split("بـ", 1).strip() if "بـ" in user_message else "موعدك المحفوظ!"
-            
-            asyncio.create_task(send_reminder(context.bot, chat_id, reminder_text, minutes * 60))
-            await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بـ ({reminder_text}) بعد {minutes} دقيقة بالضبط.")
-            return
-        except Exception:
-            await update.message.reply_text("❌ يرجى كتابتها مثل: (ذكرني بعد 5 دقائق بـ شرب الماء).")
-            return
-
+    # إظهار أن البوت يفكر ويكتب الآن
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+    
+    user_caption = update.message.caption if update.message.caption else ""
+    contents = []
+
     try:
-        response = model.generate_content(user_message)
-        await update.message.reply_text(response.text)
+        # 1. إذا أرسل المستخدم نصاً عادياً (فحص التذكير أولاً)
+        if update.message.text:
+            user_message = update.message.text
+            if "ذكرني بعد" in user_message:
+                words = user_message.split()
+                minutes = [int(w) for w in words if w.isdigit()][0]
+                reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                asyncio.create_task(send_reminder(context.bot, chat_id, reminder_text, minutes * 60))
+                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بـ ({reminder_text}) بعد {minutes} دقيقة بالضبط.")
+                return
+            contents.append(user_message)
+
+        # 2. إذا أرسل المستخدم صورة
+        elif update.message.photo:
+            photo_file = await update.message.photo[-1].get_file()
+            file_path = await photo_file.download_to_drive()
+            with open(file_path, "rb") as f:
+                image_data = f.read()
+            contents.append({"mime_type": "image/jpeg", "data": image_data})
+            if user_caption: contents.append(user_caption)
+            os.remove(file_path) # تنظيف المساحة
+
+        # 3. إذا أرسل المستخدم ملف (PDF أو TXT أو غيره)
+        elif update.message.document:
+            doc_file = await update.message.document.get_file()
+            file_path = await doc_file.download_to_drive()
+            mime_type = update.message.document.mime_type
+            with open(file_path, "rb") as f:
+                doc_data = f.read()
+            contents.append({"mime_type": mime_type, "data": doc_data})
+            if user_caption: contents.append(user_caption)
+            os.remove(file_path)
+
+        # 4. إذا أرسل المستخدم تسجيلاً صوتياً
+        elif update.message.voice:
+            voice_file = await update.message.voice.get_file()
+            file_path = await voice_file.download_to_drive()
+            mime_type = update.message.voice.mime_type
+            with open(file_path, "rb") as f:
+                voice_data = f.read()
+            contents.append({"mime_type": mime_type, "data": voice_data})
+            os.remove(file_path)
+
+        # إرسال المحتويات مجتمعة لجمناي للحصول على الرد الحكيم
+        if contents:
+            response = model.generate_content(contents)
+            await update.message.reply_text(response.text)
+        else:
+            await update.message.reply_text("أعتذر، لم أستطع قراءة هذا النوع من الملفات باه.")
+
     except Exception as e:
-        await update.message.reply_text("عذراً، حدث خطأ أثناء معالجة طلبك.")
-        print(f"Error: {e}")
+        await update.message.reply_text("أفااا، استوى خطأ في معالجة الملف! تفقد السيرفر باه.")
+        print(f"Error handling input: {e}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
+    
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # مستمع شامل لكل أنواع الرسائل (نصوص، صور، ملفات، أصوات)
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_all_inputs))
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     app.run_polling()
