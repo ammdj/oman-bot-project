@@ -9,7 +9,7 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # 🔒 تأكد من وضع رقم المعرف (ID) الخاص بك هنا لفتح البوت لك وحده
-MY_TELEGRAM_ID = 7604099965  # استبدل هذا الرقم برقم الـ ID الحقيقي الخاص بك
+MY_TELEGRAM_ID = 7604099965  
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -35,18 +35,14 @@ def run_dummy_server():
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
     server.serve_forever()
 
+# تعديل رسالة البدء لتكون مختصرة جداً وعملية بناءً على طلبك
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
         return
 
-    await update.message.reply_text(
-        "يا هلا ومرحب مرحبتين بـ راعي بلادي والنعم فيك وفي أصلك 🇴🇲.\n\n"
-        "• تم حل مشكلة سحب الملفات! الآن يمكنك إرسال النصوص، الصور، الملفات، أو الأصوات مباشرة وسأقوم بتحليلها فوراً.\n"
-        "• **ميزة التذكير الفوري تعمل:** (اكتب: ذكرني بعد X دقيقة بـ كذا).\n"
-        "تفضل باختباري، وموه في خاطرك تو باه؟"
-    )
+    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه؟")
 
 async def send_reminder(bot, chat_id, text, delay_seconds):
     await asyncio.sleep(delay_seconds)
@@ -73,10 +69,10 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
                 words = user_message.split()
-                minutes = [int(w) for w in words if w.isdigit()]
-                reminder_text = user_message.split("بـ", 1).strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                minutes = [int(w) for w in words if w.isdigit()][0]
+                reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
                 asyncio.create_task(send_reminder(context.bot, chat_id, reminder_text, minutes * 60))
-                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بـ ({reminder_text}) بعد {minutes} دقيقة بالضبط.")
+                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بعد {minutes} دقيقة.")
                 return
             contents.append(user_message)
 
