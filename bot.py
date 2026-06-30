@@ -65,7 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
         return
-    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه?")
+    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه؟")
 
 # ⏰ نظام الفحص المستمر لقاعدة البيانات لإرسال التذكيرات
 async def check_reminders_loop(application):
@@ -100,25 +100,26 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contents = []
 
     try:
-        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تم إصلاح استدعاء التوقيت هنا)
+        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تمت صيانة الأقواس بالكامل هنا)
         if update.message.text:
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
                 words = user_message.split()
-                minutes = int([w for w in words if w.isdigit()][0])
-                reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                minutes_list = [int(w) for w in words if w.isdigit()]
                 
-                # تصحيح timedelta لتفادي خطأ السيرفر
-                remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
-                
-                conn = sqlite3.connect(DB_FILE)
-                cursor = conn.cursor()
-                cursor.execute("INSERT INTO reminders (chat_id, text, remind_time) VALUES (?, ?, ?)", (chat_id, reminder_text, remind_at))
-                conn.commit()
-                conn.close()
-                
-                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، حفظت التذكير في قاعدة البيانات بأمان. سأذكرك بعد {minutes} دقيقة.")
-                return
+                if minutes_list:
+                    minutes = minutes_list[0]
+                    reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                    remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
+                    
+                    conn = sqlite3.connect(DB_FILE)
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT INTO reminders (chat_id, text, remind_time) VALUES (?, ?, ?)", (chat_id, reminder_text, remind_at))
+                    conn.commit()
+                    conn.close()
+                    
+                    await update.message.reply_text(f"✅ أبشر يا راعي بلادي، حفظت التذكير في قاعدة البيانات بأمان. سأذكرك بعد {minutes} دقيقة.")
+                    return
             contents.append(user_message)
 
         # 2. معالجة الصور عبر الرابط المباشر
@@ -161,7 +162,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.create_task(check_reminders_loop(app))
     
-    print("🚀 البوت المطور والآمن يعمل الآن بنجاح...")
+    print("🚀 البوت المطور والآمن شغال بأعلى كفاءة الحين...")
     app.run_polling()
 
 if __name__ == '__main__':
