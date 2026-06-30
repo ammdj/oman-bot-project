@@ -8,8 +8,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 🔒 رقم المعرف الخاص بك لضمان الخصوصية المطلقة (تأكد من وضع رقمك الحقيقي هنا)
-MY_TELEGRAM_ID = 7604099965 
+# 🔒 تأكد من وضع رقم المعرف (ID) الخاص بك هنا لفتح البوت لك وحده
+MY_TELEGRAM_ID = 7604099965  # استبدل هذا الرقم برقم الـ ID الحقيقي الخاص بك
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -43,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "يا هلا ومرحب مرحبتين بـ راعي بلادي والنعم فيك وفي أصلك 🇴🇲.\n\n"
-        "• تم تحديثي بنجاح! الآن يمكنك إرسال (الرسائل النصية، الصور، الملفات والمستندات، أو التسجيلات الصوتية) وسأقوم بقراءتها وتحليلها فوراً.\n"
+        "• تم حل مشكلة سحب الملفات! الآن يمكنك إرسال النصوص، الصور، الملفات، أو الأصوات مباشرة وسأقوم بتحليلها فوراً.\n"
         "• **ميزة التذكير الفوري تعمل:** (اكتب: ذكرني بعد X دقيقة بـ كذا).\n"
         "تفضل باختباري، وموه في خاطرك تو باه؟"
     )
@@ -55,83 +55,72 @@ async def send_reminder(bot, chat_id, text, delay_seconds):
     except Exception as e:
         print(f"خطأ في التذكير: {e}")
 
-# الدالة الشاملة لمعالجة أي نوع من البيانات (نص، صورة، ملف، صوت)
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
-    # حماية الأمان والخصوصية
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط وصلاحيتك غير مصرحة. 🔒")
         return
 
-    # إظهار أن البوت يفكر ويكتب الآن
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
-    
     user_caption = update.message.caption if update.message.caption else ""
     contents = []
 
     try:
-        # 1. إذا أرسل المستخدم نصاً عادياً (فحص التذكير أولاً)
+        # 1. معالجة النصوص العادية والتذكير
         if update.message.text:
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
                 words = user_message.split()
-                minutes = [int(w) for w in words if w.isdigit()][0]
-                reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                minutes = [int(w) for w in words if w.isdigit()]
+                reminder_text = user_message.split("بـ", 1).strip() if "بـ" in user_message else "موعدك المحفوظ!"
                 asyncio.create_task(send_reminder(context.bot, chat_id, reminder_text, minutes * 60))
                 await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بـ ({reminder_text}) بعد {minutes} دقيقة بالضبط.")
                 return
             contents.append(user_message)
 
-        # 2. إذا أرسل المستخدم صورة
+        # 2. معالجة الصور عبر الرابط المباشر بآمان
         elif update.message.photo:
             photo_file = await update.message.photo[-1].get_file()
-            file_path = await photo_file.download_to_drive()
-            with open(file_path, "rb") as f:
-                image_data = f.read()
+            file_url = photo_file.file_path
+            import requests
+            image_data = requests.get(file_url).content
             contents.append({"mime_type": "image/jpeg", "data": image_data})
             if user_caption: contents.append(user_caption)
-            os.remove(file_path) # تنظيف المساحة
 
-        # 3. إذا أرسل المستخدم ملف (PDF أو TXT أو غيره)
+        # 3. معالجة الملفات (PDF / TXT) عبر الرابط المباشر
         elif update.message.document:
             doc_file = await update.message.document.get_file()
-            file_path = await doc_file.download_to_drive()
+            file_url = doc_file.file_path
             mime_type = update.message.document.mime_type
-            with open(file_path, "rb") as f:
-                doc_data = f.read()
+            import requests
+            doc_data = requests.get(file_url).content
             contents.append({"mime_type": mime_type, "data": doc_data})
             if user_caption: contents.append(user_caption)
-            os.remove(file_path)
 
-        # 4. إذا أرسل المستخدم تسجيلاً صوتياً
+        # 4. معالجة التسجيلات الصوتية عبر الرابط المباشر
         elif update.message.voice:
             voice_file = await update.message.voice.get_file()
-            file_path = await voice_file.download_to_drive()
+            file_url = voice_file.file_path
             mime_type = update.message.voice.mime_type
-            with open(file_path, "rb") as f:
-                voice_data = f.read()
+            import requests
+            voice_data = requests.get(file_url).content
             contents.append({"mime_type": mime_type, "data": voice_data})
-            os.remove(file_path)
 
-        # إرسال المحتويات مجتمعة لجمناي للحصول على الرد الحكيم
         if contents:
             response = model.generate_content(contents)
             await update.message.reply_text(response.text)
         else:
-            await update.message.reply_text("أعتذر، لم أستطع قراءة هذا النوع من الملفات باه.")
+            await update.message.reply_text("أعتذر، لم أستطع قراءة هذا المدخل باه.")
 
     except Exception as e:
-        await update.message.reply_text("أفااا، استوى خطأ في معالجة الملف! تفقد السيرفر باه.")
+        await update.message.reply_text("أفااا، استوى خطأ أثناء قراءة البيانات المباشرة! تفقد السيرفر باه.")
         print(f"Error handling input: {e}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-    
     app.add_handler(CommandHandler("start", start))
-    
-    # مستمع شامل لكل أنواع الرسائل (نصوص، صور، ملفات، أصوات)
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_all_inputs))
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
