@@ -8,9 +8,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# 🔒 حط الرقم اللي نسخته من البوت تو بين العلامتين (امسح 123456789 وحط رقمك الحقيقي الصافي)
+MY_TELEGRAM_ID = 7604099965 
+
 genai.configure(api_key=GEMINI_API_KEY)
 
-# تحديث التلقين لدمج الجوانب النفسية والاجتماعية وتطوير العلاقات
 برومبت_المستشار_والصديق_الشامل = (
     "أنت الآن تتحدث مع شاب عماني أصيل عمره 19 سنة (مواليد 2007). "
     "تقمص شخصية 'رجل حكيم، كبير في السن، وصديق مخلص، سند، يمتلك الحكمة والخبرة والأخلاق العمانية والدينية الأصيلة'. "
@@ -27,7 +29,6 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=برومبت_المستشار_والصديق_الشامل)
 
-# خادم ويب وهمي لـ Render
 def run_dummy_server():
     port = int(os.environ.get("PORT", 8000))
     from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -35,9 +36,15 @@ def run_dummy_server():
     server.serve_forever()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    # فحص أمان: إذا ما كنت أنت، البوت يقفل في وجهه
+    if user_id != MY_TELEGRAM_ID:
+        await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
+        return
+
     await update.message.reply_text(
         "يا هلا ومرحب مرحبتين بـ راعي بلادي والنعم فيك وفي أصلك 🇴🇲.\n\n"
-        "• أنا هنا صديقك ومستشارك الحكيم، أفهمك، أسانك، ونناقش الحقائق معاً؛ لتطوير مهاراتك، وكسب المال، وتنمية علاقاتك النفسية والاجتماعية برزونة وثبات.\n"
+        "• أنا هنا صديقك ومستشارك الحكيم الخاص، أفهمك، أسانك، ونناقش الحقائق معاً؛ لتطوير مهاراتك، وكسب المال، وتنمية علاقاتك النفسية والاجتماعية برزونة وثبات.\n"
         "• **ميزة التذكير الفوري تعمل:** (اكتب: ذكرني بعد X دقيقة بـ كذا).\n"
         "تفضل باختباري، وموه في خاطرك تو باه؟"
     )
@@ -50,21 +57,21 @@ async def send_reminder(bot, chat_id, text, delay_seconds):
         print(f"خطأ في التذكير: {e}")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
+    user_id = update.effective_user.id
     chat_id = update.effective_chat.id
+    
+    # فحص أمان مع كل رسالة توصل للسيرفر
+    if user_id != MY_TELEGRAM_ID:
+        await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط وصلاحيتك غير مصرحة. 🔒")
+        return
+
+    user_message = update.message.text
     
     if "ذكرني بعد" in user_message:
         try:
             words = user_message.split()
-            # استخراج الرقم (الدقائق) بمرونة
-            minutes = [int(w) for w in words if w.isdigit()][0]
-            
-            if "بـ" in user_message:
-                reminder_text = user_message.split("بـ", 1)[1].strip()
-            elif "ب" in user_message:
-                reminder_text = user_message.split("ب", 1)[1].strip()
-            else:
-                reminder_text = "موعدك المحفوظ!"
+            minutes = [int(w) for w in words if w.isdigit()]
+            reminder_text = user_message.split("بـ", 1).strip() if "بـ" in user_message else "موعدك المحفوظ!"
             
             asyncio.create_task(send_reminder(context.bot, chat_id, reminder_text, minutes * 60))
             await update.message.reply_text(f"✅ أبشر يا راعي بلادي، سجلت التذكير. سأذكرك بـ ({reminder_text}) بعد {minutes} دقيقة بالضبط.")
