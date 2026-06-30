@@ -100,7 +100,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contents = []
 
     try:
-        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تمت صيانة الأقواس بالكامل هنا)
+        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تم إصلاح خطأ تحويل القائمة هنا)
         if update.message.text:
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
@@ -108,7 +108,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 minutes_list = [int(w) for w in words if w.isdigit()]
                 
                 if minutes_list:
-                    minutes = minutes_list[0]
+                    minutes = minutes_list[0] # أخذ أول رقم مستخرج بشكل صحيح
                     reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
                     remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
                     
