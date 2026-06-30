@@ -100,15 +100,19 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contents = []
 
     try:
-        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تم إصلاح خطأ تحويل القائمة هنا)
+        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات بشكل آمن ومبسط
         if update.message.text:
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
                 words = user_message.split()
-                minutes_list = [int(w) for w in words if w.isdigit()]
+                # جلب الرقم الصافي مباشرة بطريقة آمنة
+                minutes = None
+                for w in words:
+                    if w.isdigit():
+                        minutes = int(w)
+                        break
                 
-                if minutes_list:
-                    minutes = minutes_list[0] # أخذ أول رقم مستخرج بشكل صحيح
+                if minutes is not None:
                     reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
                     remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
                     
@@ -149,7 +153,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("أعتذر، لم أستطع قراءة هذا المدخل باه.")
 
     except Exception as e:
-        await update.message.reply_text("أفااا، استوى خطأ! تفقد السيرفر باه.")
+        await update.message.reply_text("عذراً معلم، حدث خطأ أثناء قراءة البيانات.")
         print(f"Error: {e}")
 
 def main():
@@ -162,7 +166,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.create_task(check_reminders_loop(app))
     
-    print("🚀 البوت المطور والآمن شغال بأعلى كفاءة الحين...")
+    print("🚀 البوت يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
