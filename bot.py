@@ -1,9 +1,6 @@
 import os
 import threading
-import asyncio
-import sqlite3
 import requests
-from datetime import datetime, timedelta
 import google.generativeai as genai
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -11,31 +8,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 🔒 المعرف الرقمي الخاص بك (تأكد من تعديله إلى رقمك الحقيقي)
+# 🔒 المعرف الرقمي الخاص بك (تأكد من تعديله إلى رقمك الحقيقي لفتح البوت لك وحده)
 MY_TELEGRAM_ID = 7604099965  
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# 💾 إعداد وتجهيز قاعدة البيانات لحفظ التذكيرات للأبد
-DB_FILE = "reminders.db"
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS reminders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_id INTEGER,
-            text TEXT,
-            remind_time TEXT,
-            is_sent INTEGER DEFAULT 0
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-# 🧠 تحديث التلقين ليعتمد على سنة ميلادك (2007) والبحث عن أحدث الأخبار
+# 🧠 تلقين الشخصية الحكيمة الصادقة بناءً على سنة ميلادك (2007) والبحث عن الأخبار
 برومبت_المستشار_الواقعي = (
     "أنت الآن تتحدث مع شاب عماني أصيل ومحترم ولد في عام 2007 (احسب عمره تلقائياً بناءً على السنة الحالية لكي لا تنسى سنّه أبداً). "
     "تقمص شخصية 'رجل حكيم، كبير في السن، وصديق مخلص، سند، يمتلك الحكمة والخبرة والأخلاق العمانية والدينية الأصيلة'. "
@@ -47,7 +25,7 @@ init_db()
     "3. كن صديقاً حقيقياً يفهمه ويسانده ويمدحه مدحاً صادقاً ومستحقاً بناءً على رجولته وطموحه المالي وتطوير علاقاته النفسية والاجتماعية."
 )
 
-# تفعيل أداة البحث المباشر على جوجل (Google Search Grounding) بشكل متوافق تماماً
+# تفعيل أداة البحث المباشر على جوجل (Google Search Grounding) بشكل متوافق وتلقائي
 model = genai.GenerativeModel(
     model_name='gemini-2.5-flash',
     system_instruction=برومبت_المستشار_الواقعي,
@@ -67,26 +45,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه؟")
 
-# ⏰ نظام الفحص المستمر لقاعدة البيانات لإرسال التذكيرات
-async def check_reminders_loop(application):
-    while True:
-        await asyncio.sleep(10)
-        try:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-            cursor.execute("SELECT id, chat_id, text FROM reminders WHERE remind_time <= ? AND is_sent = 0", (current_time,))
-            rows = cursor.fetchall()
-            
-            for row in rows:
-                rem_id, chat_id, text = row
-                await application.bot.send_message(chat_id=chat_id, text=f"⏰ **تذكير هام وعاجل:**\n\n{text}")
-                cursor.execute("UPDATE reminders SET is_sent = 1 WHERE id = ?", (rem_id,))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            print(f"Error in reminder loop: {e}")
-
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
@@ -100,31 +58,9 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contents = []
 
     try:
-        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات بشكل آمن ومبسط
+        # 1. معالجة النصوص وحذف التذكير تماماً
         if update.message.text:
-            user_message = update.message.text
-            if "ذكرني بعد" in user_message:
-                words = user_message.split()
-                # جلب الرقم الصافي مباشرة بطريقة آمنة
-                minutes = None
-                for w in words:
-                    if w.isdigit():
-                        minutes = int(w)
-                        break
-                
-                if minutes is not None:
-                    reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
-                    remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
-                    
-                    conn = sqlite3.connect(DB_FILE)
-                    cursor = conn.cursor()
-                    cursor.execute("INSERT INTO reminders (chat_id, text, remind_time) VALUES (?, ?, ?)", (chat_id, reminder_text, remind_at))
-                    conn.commit()
-                    conn.close()
-                    
-                    await update.message.reply_text(f"✅ أبشر يا راعي بلادي، حفظت التذكير في قاعدة البيانات بأمان. سأذكرك بعد {minutes} دقيقة.")
-                    return
-            contents.append(user_message)
+            contents.append(update.message.text)
 
         # 2. معالجة الصور عبر الرابط المباشر
         elif update.message.photo:
@@ -153,7 +89,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("أعتذر، لم أستطع قراءة هذا المدخل باه.")
 
     except Exception as e:
-        await update.message.reply_text("عذراً معلم، حدث خطأ أثناء قراءة البيانات.")
+        await update.message.reply_text("عذراً معلم، حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.")
         print(f"Error: {e}")
 
 def main():
@@ -163,10 +99,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    loop = asyncio.get_event_loop()
-    loop.create_task(check_reminders_loop(app))
-    
-    print("🚀 البوت يعمل الآن بنجاح...")
+    print("🚀 البوت الصافي المستقر يعمل الآن...")
     app.run_polling()
 
 if __name__ == '__main__':
