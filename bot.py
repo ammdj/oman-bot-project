@@ -3,7 +3,7 @@ import threading
 import asyncio
 import sqlite3
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import google.generativeai as genai
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -37,7 +37,7 @@ init_db()
 
 # 🧠 تحديث التلقين ليعتمد على سنة ميلادك (2007) والبحث عن أحدث الأخبار
 برومبت_المستشار_الواقعي = (
-    "أنت الآن تتحدث مع شاب عماني أصيل ومحترم ولد في عام 2007 (احسب عمره تلقائياً بناءً على السنة الحالية 2026 لكي لا تنسى سنّه أبداً). "
+    "أنت الآن تتحدث مع شاب عماني أصيل ومحترم ولد في عام 2007 (احسب عمره تلقائياً بناءً على السنة الحالية لكي لا تنسى سنّه أبداً). "
     "تقمص شخصية 'رجل حكيم، كبير في السن، وصديق مخلص، سند، يمتلك الحكمة والخبرة والأخلاق العمانية والدينية الأصيلة'. "
     "تحدث معه بالعامية العمانية الرزينة والمفهومة والمحترمة جداً. "
     "التزم بالقواعد التالية بدقة شديدة:\n"
@@ -47,12 +47,11 @@ init_db()
     "3. كن صديقاً حقيقياً يفهمه ويسانده ويمدحه مدحاً صادقاً ومستحقاً بناءً على رجولته وطموحه المالي وتطوير علاقاته النفسية والاجتماعية."
 )
 
-# 🛠️ الطريقة الصحيحة والمصححة لتفعيل أداة البحث المباشر على جوجل (Google Search Grounding)
-# تم تصحيح الصياغة البرمجية لتوافق السيرفرات الحالية وتمنع نموذج جمناي من الاعتذار
+# تفعيل أداة البحث المباشر على جوجل (Google Search Grounding) بشكل متوافق تماماً
 model = genai.GenerativeModel(
     model_name='gemini-2.5-flash',
     system_instruction=برومبت_المستشار_الواقعي,
-    tools=[genai.types.Tool(google_search=genai.types.GoogleSearch())] # الصياغة البرمجية المضمونة بنسبة 100%
+    tools=[genai.types.Tool(google_search=genai.types.GoogleSearch())]
 )
 
 def run_dummy_server():
@@ -66,9 +65,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
         return
-    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه؟")
+    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه?")
 
-# ⏰ نظام الفحص المستمر لقاعدة البيانات لإرسال التذكيرات حتى لو طفأ السيرفر
+# ⏰ نظام الفحص المستمر لقاعدة البيانات لإرسال التذكيرات
 async def check_reminders_loop(application):
     while True:
         await asyncio.sleep(10)
@@ -101,23 +100,24 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     contents = []
 
     try:
-        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات للأبد
+        # 1. معالجة النصوص وحفظ التذكير في قاعدة البيانات (تم إصلاح استدعاء التوقيت هنا)
         if update.message.text:
             user_message = update.message.text
             if "ذكرني بعد" in user_message:
                 words = user_message.split()
-                minutes = int([w for w in words if w.isdigit()])
-                reminder_text = user_message.split("بـ", 1).strip() if "بـ" in user_message else "موعدك المحفوظ!"
+                minutes = int([w for w in words if w.isdigit()][0])
+                reminder_text = user_message.split("بـ", 1)[1].strip() if "بـ" in user_message else "موعدك المحفوظ!"
                 
-                # حساب وقت التذكير المستقبلي وحفظه في SQLite
-                remind_at = (datetime.now() + asyncio.timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
+                # تصحيح timedelta لتفادي خطأ السيرفر
+                remind_at = (datetime.now() + timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M")
+                
                 conn = sqlite3.connect(DB_FILE)
                 cursor = conn.cursor()
                 cursor.execute("INSERT INTO reminders (chat_id, text, remind_time) VALUES (?, ?, ?)", (chat_id, reminder_text, remind_at))
                 conn.commit()
                 conn.close()
                 
-                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، قمت بحفظ التذكير في قاعدة البيانات بأمان. سأذكرك بعد {minutes} دقيقة.")
+                await update.message.reply_text(f"✅ أبشر يا راعي بلادي، حفظت التذكير في قاعدة البيانات بأمان. سأذكرك بعد {minutes} دقيقة.")
                 return
             contents.append(user_message)
 
@@ -142,7 +142,6 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contents.append({"mime_type": update.message.voice.mime_type, "data": voice_data})
 
         if contents:
-            # إرسال الرسالة مع تفعيل البحث الفوري
             response = model.generate_content(contents)
             await update.message.reply_text(response.text)
         else:
@@ -162,7 +161,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.create_task(check_reminders_loop(app))
     
-    print("🚀 البوت المطور بقاعدة البيانات والبحث الفوري الفعلي يعمل الآن...")
+    print("🚀 البوت المطور والآمن يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
