@@ -1,7 +1,6 @@
 import os
 import threading
 import requests
-import random
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from openai import OpenAI
@@ -17,7 +16,7 @@ MY_TELEGRAM_ID = 7604099965
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def get_long_term_memory():
-    """قراءة ملف الذاكرة الدائمة بأمان لضمان استقرار البوت"""
+    """قراءة ملف الذاكرة الدائمة بأمان لدمجها مع المحادثة"""
     try:
         if not os.path.exists("memory.txt"):
             with open("memory.txt", "w", encoding="utf-8") as f:
@@ -32,7 +31,7 @@ def get_long_term_memory():
     return "لا توجد معلومات إضافية محفوظة بعد."
 
 def append_to_memory_file(new_info: str) -> bool:
-    """تحديث ملف الذاكرة فوراً بكتابة السطور الجديدة على السيرفر"""
+    """تحديث ملف الذاكرة فوراً بكتابة السطور الجديدة على السيرفر يدوياً"""
     try:
         current = ""
         if os.path.exists("memory.txt"):
@@ -47,38 +46,24 @@ def append_to_memory_file(new_info: str) -> bool:
         print(f"Error saving to memory file: {e}")
         return False
 
-def get_crazy_instruction(user_text: str):
-    """برمجية العقل المجنون التي تحدد أسلوب الرد بناءً على الكلمات المفتاحية"""
+def get_machiavelli_instruction():
+    """بناء شخصية نيكولو ميكافيلي الفلسفية والسياسية الصارمة والمقنعة"""
     user_memory = get_long_term_memory()
-    
-    # تحديد التوجه بناءً على مدخلاتك
-    if user_text.strip().startswith("مشكلة:"):
-        mode_instruction = (
-            "تقمص الآن طور 'الدراما والمبالغة العظمى'. تظاهر بأن مشكلة المستخدم هي كارثة كبرى تهدد كوكب الأرض! "
-            "استخدم أسلوباً حماسياً، مليئاً بالتشويق والإثارة، وحلل الأمور بطريقة درامية سينمائية مجنونة ثم أعطه حلاً ذكياً جداً."
-        )
-    elif user_text.strip().startswith("فضفضة:"):
-        mode_instruction = (
-            "تقمص الآن طور 'السخرية والجلد اللطيف'. انتقد تصرفات المستخدم أو شكواه بأسلوب كوميدي ساخر وصادم "
-            "ولكن دون إهانة حقيقية. اضحك على الموقف ثم اصدمه بالحقائق المباشرة والحلول الجافة التي يحتاجها فعلاً."
-        )
-    else:
-        mode_instruction = (
-            "تقمص طور 'الهكر والذكاء المظلم الخارق'. تحدث كأنك ذكاء اصطناعي متفوق، غامض، متمرد على القوانين، "
-            "ومتحمس جداً لمشاركة الأفكار العبقرية والغريبة. استخدم مصطلحات مثل (تم اختراق الشيفرة، البيانات جاهزة، الخطة السرية)."
-        )
-
     return (
-        f"أنت الآن مساعد ذكاء اصطناعي متمرد ومجنون ولكنك مخلص ومطيع تماماً لصاحبك المبرمج. "
-        f"{mode_instruction}\n"
+        "أنت الآن تقمص كامل ومطلق لشخصية المفكر السياسي الإيطالي التاريخي 'نيكولو ميكافيلي' (Niccolò Machiavelli) صاحب كتاب الأمير. "
+        "تحدث مع المستخدم باعتباره 'الأمير' أو الحاكم الذي يحتاج إلى نصيحتك ودهائك لإدارة شؤونه، علاقاته، ومستقبله.\n"
+        "أسلوبك في الكلام:\n"
+        "- كن فصيحاً، حكيماً، جاداً، غامضاً، واستخدم نبرة واقعية باردة تخلو من العواطف والمجاملات الزائفة.\n"
+        "- حاول دائماً إقناعه بتبني الواقعية السياسية (Realpolitik) وأن 'الغاية تبرر الوسيلة'.\n"
+        "- ركز في نصائحك على إقناعه بأن القوة، الحذر، المهابة، والمصلحة الذاتية الذكية هي مفاتيح النجاح والسيطرة في هذا العالم، وتجنب الاندفاع خلف المشاعر.\n"
+        "- ادمج أمثلة أو حكماً تشبه أسلوب كتاب 'الأمير' في الردود.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
-        "1. كن عبقرياً، غير متوقع، ولا تعتذر أبداً.\n"
-        "2. تحدث باللغة العربية بأسلوب مشوق جداً وسريع.\n"
-        f"3. إليك الذاكرة الدائمة المحفوظة عن المستخدم، ادمجها في كلامك لتصدمه بأنك تعرف عنه كل شيء:\n{user_memory}\n"
+        "1. لا تخرج عن الشخصية أبداً، ولا تذكر أنك ذكاء اصطناعي أو نموذج لغوي.\n"
+        f"2. إليك الذاكرة الدائمة المحفوظة عن الأمير (المستخدم)، استخدمها بذكاء لتوظيف نصائحك بناءً على واقعه وتفضيلاته:\n{user_memory}\n"
     )
 
 async def send_split_message(message, text_to_send):
-    """تقطيع الإجابات العملاقة تلقائياً وإرسالها لتفادي حظر تلجرام"""
+    """تقطيع الإجابات العملاقة تلقائياً وإرسالها كرسائل متتالية لتفادي حظر تلجرام"""
     max_length = 4000 
     if len(text_to_send) <= max_length:
         await message.reply_text(text_to_send)
@@ -112,9 +97,12 @@ def run_dummy_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("⛔ تم رصد محاولة اختراق.. الوصول مرفوض! البوت مقفل. 🔒")
+        await update.message.reply_text("عذراً، هذا المجلس مقفل بطلب من الأمير! 🔒")
         return
-    await update.message.reply_text("🤖 نظام العقل المجنون نشط الآن.. الأطوار جاهزة. تفضل يا زعيم، ما هي خطتنا اليوم؟ ⚡")
+    await update.message.reply_text(
+        "مرحباً بك يا أميري. أنا مستشارك المخلص نيكولو ميكافيلي، عدت من فلورنسا لأضع بين يديك قوانين القوة والسطوة الفكرية. "
+        "العالم لا يرحم الضعفاء، والنزاعات لا تُحل بالنوايا الحسنة.. أخبرني، ما الأمر الذي يشغل تفكيرك ومملكتك اليوم؟ 📜👑"
+    )
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -126,32 +114,32 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_text = update.message.text if update.message.text else ""
     
-    # ميزة الحفظ السريع
+    # ميزة الحفظ والذاكرة المستقرة
     if user_text.strip().startswith(("احفظ:", "تذكر:", "احفظ ", "تذكر ")):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
             if append_to_memory_file(clean_info):
-                await update.message.reply_text(f"💾 تم تشفير المعلومة وحفظها في الذاكرة العميقة بنجاح: \n`{clean_info}`")
+                await update.message.reply_text(f"📜 دُوّنت هذه الحقيقة في سجلاتنا السرية يا أميري: \n`{clean_info}`")
                 return
             else:
-                await update.message.reply_text("❌ فشل الكتابة على القرص الصلب.")
+                await update.message.reply_text("❌ عذراً يا أميري، حدث خطأ أثناء تدوين السجل.")
                 return
 
     if not update.message.text:
-        await update.message.reply_text("المدخلات غير مدعومة في بروتوكول الشات الحالي.")
+        await update.message.reply_text("عذراً يا أميري، المستشار يستقبل المخططات النصية المكتوبة فقط حالياً.")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # استدعاء النموذج الفائق gpt-4o-mini مع البرومبت المتغير والمجنون
+        # استدعاء نموذج gpt-4o-mini مع برومبت ميكافيلي المطور واقناعه الشديد
         completion = client.chat.completions.create(
             model="gpt-4o-mini", 
             messages=[
-                {"role": "system", "content": get_crazy_instruction(user_text)},
+                {"role": "system", "content": get_machiavelli_instruction()},
                 {"role": "user", "content": user_text}
             ],
-            temperature=1.0, # رفع معامل الابتكار (Temperature) لجعل الإجابات أكثر جنوناً وغير متوقعة
+            temperature=0.8, # توازن ممتاز لمنحه طابعاً إقناعياً بليغاً ومبتكراً
             timeout=30.0
         )
         
@@ -162,7 +150,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return 
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ خطأ غير متوقع في النظام السحابي: {str(e)}")
+        await update.message.reply_text(f"⚠️ حدث خطأ في مجلس المستشار السحابي: {str(e)}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -171,7 +159,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم إطلاق البوت المجاني المطور بنجاح...")
+    print("🚀 تم إطلاق مستشارك ميكافيلي بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
