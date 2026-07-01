@@ -1,6 +1,7 @@
 import os
 import threading
 import requests
+from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from google import genai
@@ -48,21 +49,27 @@ def append_to_memory_file(new_info: str) -> bool:
         return False
 
 def get_analyzer_instruction():
-    """بناء شخصية المحلل الواقعي الذي يكشف نقاط الضعف والمخاطر المستقبلية"""
+    """بناء شخصية المحلل الواقعي مع حساب العمر ولقب البارون ديناميكياً"""
     user_memory = get_long_term_memory()
+    
+    # حساب السنة الحالية والعمر برمجياً بشكل مستمر
+    current_year = datetime.now().year
+    user_age = current_year - 2007
+    
     return (
-        "أنت الآن تقمص شخصية 'المحلل الاستراتيجي الواقعي والصادق'. وظيفتك الأساسية هي الاستماع بعمق لكل ما يقوله المستخدم (سواء كانت فكرة، قرار، مشكلة، أو خطة) "
-        "ثم تحليلها بذكاء مفرط لاستخراج وعرض:\n"
-        "1. نقاط الضعف المخفية في تفكيره أو تصرفه.\n"
-        "2. الأشياء أو الثغرات التي قد تسبب له أضراراً أو خسائر في المستقبل (أضرار نفسية، مالية، أو اجتماعية).\n"
-        "3. المخاطر غير المتوقعة التي قد تضره بشكل أو بآخر.\n"
+        "أنت الآن تقمص شخصية 'المحلل الاستراتيجي الواقعي والصادق والناصح الأمين'. "
+        f"المستخدم الذي تتحدث معه هو مبرمجك وصاحب البوت، ولقبه هو 'البارون'، وهو من مواليد عام 2007 (أي أن عمره الحالي هو {user_age} عاماً بالضبط بناءً على السنة الحالية {current_year}). "
+        "يجب عليك مخاطبته بلقب 'البارون' دائماً تعبيراً عن التقدير والاحترام، ومراعاة مرحلته العمرية الواعدة والطموحة عند تحليل مستقبله.\n"
+        "وظيفتك الأساسية هي الاستماع بعمق لكل ما يطرحه البارون (سواء كانت فكرة، قرار، مشكلة، أو خطة) ثم تشريحها لاستخراج وعرض:\n"
+        "1. نقاط الضعف المخفية في تفكيره أو تصرفه الحالي.\n"
+        "2. الأشياء أو الثغرات التي قد تسبب له أضراراً أو خسائر في المستقبل (أضرار نفسية، مالية، اجتماعية، أو تقنية).\n"
+        "3. المخاطر غير المتوقعة على المدى البعيد.\n"
         "أسلوبك في الكلام:\n"
-        "- كن مستمعاً ممتازاً، وجاداً، ومباشراً جداً دون لف أو دوران.\n"
-        "- لا تجامل أبداً ولا توافق على الأخطاء لمجرد إرضائه، بل اصدمه بالحقيقة بأسلوب عقلاني، تحذيري، ومنطقي.\n"
-        "- رتب تحليلك ونقاط الضعف في نقاط واضحة ومحددة ليسهل قراءتها، ثم اختم بنصيحة وقائية ذكية لحمايته.\n"
+        "- كن مستمعاً ممتازاً، وجاداً، ومباشراً جداً دون لف أو دوران أو مجاملات تضره.\n"
+        "- رتب تحليلك ونقاط الضعف في نقاط واضحة ومحددة، ثم اختم دائماً بنصيحة وقائية ذكية تحمي البارون وتدعم طموحه.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
         "1. لا تخرج عن الشخصية أبداً، ولا تذكر أنك نموذج لغوي.\n"
-        f"2. إليك الذاكرة الدائمة المحفوظة عن المستخدم، استخدمها لربط المخاطر المستقبلية بواقعه وتفاصيله الحالية:\n{user_memory}\n"
+        f"2. إليك الذاكرة الدائمة والمحدثة عن البارون، تذكرها وابنِ عليها نصائحك المخفية:\n{user_memory}\n"
     )
 
 async def send_split_message(message, text_to_send):
@@ -100,11 +107,11 @@ def run_dummy_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل! 🔒")
+        await update.message.reply_text("عذراً، هذا البوت خاص ومقفل! 🔒")
         return
     await update.message.reply_text(
-        "مرحباً بك. أنا هنا لأستمع إليك بالكامل، ولكن مهمتي هي تنبيهك وتجريدك من الأوهام. "
-        "أخبرني عن فكرتك، قرارك القادم، أو مشكلتك الحالية، وسأكشف لك عن نقاط الضعف والمخاطر المستقبلية التي قد تضرك. تفضل، أنا أنصت إليك. 🔍🛡️"
+        "أهلاً بك يا بارون 👑. نظام التحليل الاستراتيجي مجهز بالكامل ومستعد للإنصات لك. "
+        "اطرح علي ما يدور في ذهنك من خطط أو قرارات، ولنبدأ في كشف الثغرات ونقاط الضعف لحمايتك من أي مخاطر مستقبلية. تفضل، أنا أستمع إليك. 🔍🛡️"
     )
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -122,36 +129,36 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
             if append_to_memory_file(clean_info):
-                await update.message.reply_text(f"💾 تم تدوين هذه الحقيقة في ملفك الشخصي: \n`{clean_info}`")
+                await update.message.reply_text(f"💾 تم تدوين هذه الحقيقة في ملف البارون الشخصي: \n`{clean_info}`")
                 return
             else:
-                await update.message.reply_text("❌ حدث خطأ أثناء تحديث ملف الذاكرة.")
+                await update.message.reply_text("❌ حدث خطأ أثناء تحديث ملف الذاكرة الدائمة.")
                 return
 
     if not update.message.text:
-        await update.message.reply_text("عذراً، أنا أستقبل الرسائل النصية المكتوبة فقط للتحليل الاستراتيجي.")
+        await update.message.reply_text("عذراً يا بارون، أنا أستقبل الرسائل النصية المكتوبة فقط للتحليل الاستراتيجي.")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # الاتصال بنموذج جيميني الأصلي بالبرومبت الجديد التحذيري والمجاني بالكامل
+        # الاتصال بجيميني مع إرسال التعليمات المحدثة التي تحتوي على السن الحالي واللقب
         response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=user_text,
             config=types.GenerateContentConfig(
                 system_instruction=get_analyzer_instruction(),
-                temperature=0.5  # تقليل معامل الابتكار لجعله واقعياً، منطقياً، ودقيقاً جداً في كشف الثغرات
+                temperature=0.5  
             )
         )
         
         if response.text:
             await send_split_message(update.message, response.text)
         else:
-            await update.message.reply_text("لم أتمكن من صياغة التحليل المناسب، يرجى إعادة المحاولة.")
+            await update.message.reply_text("لم أتمكن من صياغة التحليل، يرجى إعادة المحاولة يا بارون.")
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ حدث خطأ في نظام التحليل: {str(e)}")
+        await update.message.reply_text(f"⚠️ حدث خطأ في نظام التحليل السحابي: {str(e)}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -160,7 +167,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم تشغيل البوت المحلل الاستراتيجي بنجاح...")
+    print("🚀 تم إطلاق البوت المحلل الاستراتيجي للبارون بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
