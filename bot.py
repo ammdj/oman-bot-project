@@ -26,17 +26,17 @@ def get_long_term_memory():
 
 def get_system_instruction():
     user_memory = get_long_term_memory()
-    # دمج الذاكرة الدائمة المحفوظة داخل البرومبت الأساسي للبوت مع كل رسالة
+    # دمج الذاكرة الدائمة وتعديل التوجيهات ليكون البوت مرناً ومماثلاً لأسلوب ChatGPT
     return (
-        "أنت الآن تتحدث مع شاب عماني أصيل ومحترم ولد في عام 2007 (احسب عمره تلقائياً بناءً على السنة الحالية لكي لا تنسى سنّه أبداً). "
-        "تقمص شخصية 'رجل حكيم، كبير في السن، وصديق مخلص، سند، يمتلك الحكمة والخبرة والأخلاق العمانية والدينية الأصيلة'. "
-        "تحدث معه بالعامية العمانية الرزينة والمفهومة والمحترمة جداً. "
+        "أنت الآن مساعد ذكاء اصطناعي متطور وذكي جداً يعمل بنفس أسلوب وكفاءة ChatGPT. "
+        "تحدث مع المستخدم بأسلوب احترافي، واضح، ومباشر. "
+        "مرونتك كاملة: إذا طلب منك المستخدم تغيير أسلوب الكلام، أو التحدث بلهجة معينة، أو تقمص شخصية محددة خلال المحادثة، التزم بطلبه فوراً وتحدث معه بالأسلوب الجديد الذي يحدده لك.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
-        "1. كن عملياً ومباشراً وواضحاً جداً، وتجنب اللف والدوران أو الاعتذار عن قلة المعلومات.\n"
-        f"2. إليك الذاكرة الدائمة والمحفوظة عن المستخدم، تذكرها جيداً وابنِ كلامك عليها دائماً ولا تنساها:\n{user_memory}\n"
-        "3. إذا سألك عن أخبار العالم الحالية أو ما يحدث في سلطنة عُمان الآن، استخدم أداة البحث جوجل المدمجة معك فوراً؛ "
-        "اجمع له أحدث وأدق الأخبار المنشورة قبل دقائق، واعرض له الحقائق المهمة فعلياً بصدق ودون مجاملة أو تهرب.\n"
-        "4. كن صديقاً حقيقياً يفهمه ويسانده ويمدحه مدحاً صادقاً ومستحقاً بناءً على رجولته وطموحه المالي وتطوير علاقاته النفسية والاجتماعية."
+        "1. كن عملياً ومباشراً وتجنب اللف والدوران أو التكرار غير المبرر.\n"
+        f"2. إليك الذاكرة الدائمة والمحفوظة عن المستخدم، تذكرها جيداً وابنِ كلامك عليها دائماً:\n{user_memory}\n"
+        "3. إذا سألك عن أخبار العالم الحالية أو معلومات تتطلب الإنترنت، استخدم أداة البحث جوجل المدمجة معك فوراً "
+        "واستخرج له أحدث المعلومات بدقة عالية.\n"
+        "4. قدم الدعم الكامل، الشرح الواضح، والحلول البرمجية أو التقنية بدقة واحترافية."
     )
 
 def run_dummy_server():
@@ -50,7 +50,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
         return
-    await update.message.reply_text("أهلين معلّم 🤝🇴🇲. تفضل، موه في خاطرك تو باه؟")
+    await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي الجاهز لخدمتك الآن. كيف يمكنني مساعدتك اليوم؟ 🤖")
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -83,21 +83,20 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contents_list.append(types.Part.from_bytes(data=voice_data, mime_type=update.message.voice.mime_type))
 
         if contents_list:
-            # تم تصحيح استدعاء أداة البحث هنا لتتوافق مع المكتبة لعام 2026
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents_list,
                 config=types.GenerateContentConfig(
                     system_instruction=get_system_instruction(),
-                    tools=[types.Tool(google_search=types.GoogleSearch())] # الصيغة المصححة والمضمونة 100%
+                    tools=[types.Tool(google_search=types.GoogleSearch())]
                 )
             )
             await update.message.reply_text(response.text)
         else:
-            await update.message.reply_text("أعتذر، لم أستطع قراءة هذا المدخل باه.")
+            await update.message.reply_text("عذراً، لم أتمكن من معالجة هذا المدخل.")
 
     except Exception as e:
-        await update.message.reply_text("عذراً معلم، حدث خطأ أثناء الاتصال بالذكاء الاصطناعي الفعلي.")
+        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.")
         print(f"Error: {e}")
 
 def main():
@@ -107,7 +106,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 البوت يعمل الآن بنجاح...")
+    print("🚀 البوت يعمل الآن بنجاح بالأسلوب المحدث...")
     app.run_polling()
 
 if __name__ == '__main__':
