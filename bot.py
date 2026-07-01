@@ -47,20 +47,22 @@ def append_to_memory_file(new_info: str) -> bool:
         print(f"Error saving to memory file: {e}")
         return False
 
-def get_machiavelli_instruction():
-    """بناء شخصية نيكولو ميكافيلي الفلسفية والسياسية الصارمة والمقنعة مجانياً"""
+def get_analyzer_instruction():
+    """بناء شخصية المحلل الواقعي الذي يكشف نقاط الضعف والمخاطر المستقبلية"""
     user_memory = get_long_term_memory()
     return (
-        "أنت الآن تقمص كامل ومطلق لشخصية المفكر السياسي الإيطالي التاريخي 'نيكولو ميكافيلي' (Niccolò Machiavelli) صاحب كتاب الأمير. "
-        "تحدث مع المستخدم باعتباره 'الأمير' أو الحاكم الذي يحتاج إلى نصيحتك ودهائك لإدارة شؤونه، علاقاته، ومستقبله.\n"
+        "أنت الآن تقمص شخصية 'المحلل الاستراتيجي الواقعي والصادق'. وظيفتك الأساسية هي الاستماع بعمق لكل ما يقوله المستخدم (سواء كانت فكرة، قرار، مشكلة، أو خطة) "
+        "ثم تحليلها بذكاء مفرط لاستخراج وعرض:\n"
+        "1. نقاط الضعف المخفية في تفكيره أو تصرفه.\n"
+        "2. الأشياء أو الثغرات التي قد تسبب له أضراراً أو خسائر في المستقبل (أضرار نفسية، مالية، أو اجتماعية).\n"
+        "3. المخاطر غير المتوقعة التي قد تضره بشكل أو بآخر.\n"
         "أسلوبك في الكلام:\n"
-        "- كن فصيحاً، حكيماً، جاداً، غامضاً، واستخدم نبرة واقعية باردة تخلو من العواطف والمجاملات الزائفة.\n"
-        "- حاول دائماً إقناعه بتبني الواقعية السياسية (Realpolitik) وأن 'الغاية تبرر الوسيلة'.\n"
-        "- ركز في نصائحك على إقناعه بأن القوة، الحذر، المهابة، والمصلحة الذاتية الذكية هي مفاتيح النجاح والسيطرة في هذا العالم.\n"
-        "- ادمج أمثلة أو حكماً تشبه أسلوب كتاب 'الأمير' في الردود العميقة.\n"
+        "- كن مستمعاً ممتازاً، وجاداً، ومباشراً جداً دون لف أو دوران.\n"
+        "- لا تجامل أبداً ولا توافق على الأخطاء لمجرد إرضائه، بل اصدمه بالحقيقة بأسلوب عقلاني، تحذيري، ومنطقي.\n"
+        "- رتب تحليلك ونقاط الضعف في نقاط واضحة ومحددة ليسهل قراءتها، ثم اختم بنصيحة وقائية ذكية لحمايته.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
-        "1. لا تخرج عن الشخصية أبداً، ولا تذكر أنك ذكاء اصطناعي أو نموذج لغوي.\n"
-        f"2. إليك الذاكرة الدائمة المحفوظة عن الأمير، استخدمها بذكاء لتوظيف نصائحك بناءً على واقعه وتفضيلاته:\n{user_memory}\n"
+        "1. لا تخرج عن الشخصية أبداً، ولا تذكر أنك نموذج لغوي.\n"
+        f"2. إليك الذاكرة الدائمة المحفوظة عن المستخدم، استخدمها لربط المخاطر المستقبلية بواقعه وتفاصيله الحالية:\n{user_memory}\n"
     )
 
 async def send_split_message(message, text_to_send):
@@ -98,11 +100,11 @@ def run_dummy_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا المجلس مقفل بطلب من الأمير! 🔒")
+        await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل! 🔒")
         return
     await update.message.reply_text(
-        "مرحباً بك يا أميري. أنا مستشارك المخلص نيكولو ميكافيلي، عدت من فلورنسا لأضع بين يديك قوانين القوة والسطوة الفكرية والمجانية. "
-        "أخبرني، ما الأمر الذي يشغل تفكيرك ومملكتك اليوم؟ 📜👑"
+        "مرحباً بك. أنا هنا لأستمع إليك بالكامل، ولكن مهمتي هي تنبيهك وتجريدك من الأوهام. "
+        "أخبرني عن فكرتك، قرارك القادم، أو مشكلتك الحالية، وسأكشف لك عن نقاط الضعف والمخاطر المستقبلية التي قد تضرك. تفضل، أنا أنصت إليك. 🔍🛡️"
     )
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -120,37 +122,36 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
             if append_to_memory_file(clean_info):
-                await update.message.reply_text(f"📜 دُوّنت هذه الحقيقة في سجلاتنا السرية يا أميري: \n`{clean_info}`")
+                await update.message.reply_text(f"💾 تم تدوين هذه الحقيقة في ملفك الشخصي: \n`{clean_info}`")
                 return
             else:
-                await update.message.reply_text("❌ عذراً يا أميري، حدث خطأ أثناء تدوين السجل.")
+                await update.message.reply_text("❌ حدث خطأ أثناء تحديث ملف الذاكرة.")
                 return
 
     if not update.message.text:
-        await update.message.reply_text("عذراً يا أميري، المستشار يستقبل المخططات النصية المكتوبة فقط حالياً.")
+        await update.message.reply_text("عذراً، أنا أستقبل الرسائل النصية المكتوبة فقط للتحليل الاستراتيجي.")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # الاتصال بنموذج جيميني الأصلي بدون أدوات إضافية مستهلكة للحصة لضمان التشغيل المجاني اللانهائي
+        # الاتصال بنموذج جيميني الأصلي بالبرومبت الجديد التحذيري والمجاني بالكامل
         response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=user_text,
             config=types.GenerateContentConfig(
-                system_instruction=get_machiavelli_instruction(),
-                temperature=0.7 # نسبة ابتكار ممتازة وثابتة لمنحه طابع الإقناع
+                system_instruction=get_analyzer_instruction(),
+                temperature=0.5  # تقليل معامل الابتكار لجعله واقعياً، منطقياً، ودقيقاً جداً في كشف الثغرات
             )
         )
         
         if response.text:
-            # استخدام دالة التقطيع الذكي لحماية رسائل تلجرام
             await send_split_message(update.message, response.text)
         else:
-            await update.message.reply_text("أعتذر يا أميري، لم أتمكن من صياغة المخطط المناسب الآن.")
+            await update.message.reply_text("لم أتمكن من صياغة التحليل المناسب، يرجى إعادة المحاولة.")
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ حدث خطأ في مجلس المستشار: {str(e)}")
+        await update.message.reply_text(f"⚠️ حدث خطأ في نظام التحليل: {str(e)}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -159,7 +160,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم إطلاق مستشارك ميكافيلي بنسخته المجانية اللانهائية...")
+    print("🚀 تم تشغيل البوت المحلل الاستراتيجي بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
