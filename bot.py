@@ -3,17 +3,18 @@ import threading
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-# جلب المفاتيح من بيئة نظام Render بشكل آمن تماماً
+# جلب المفاتيح من بيئة نظام Render بشكل آمن تماماً وبدون دفع
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # 🔒 المعرف الرقمي الخاص بك (صاحب البوت)
 MY_TELEGRAM_ID = 7604099965  
 
-# تهيئة العميل البرمجي لـ OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY)
+# تهيئة عميل الذكاء الاصطناعي من جوجل بالشكل الرسمي والمحدث
+ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_long_term_memory():
     """قراءة ملف الذاكرة الدائمة بأمان لدمجها مع المحادثة"""
@@ -47,7 +48,7 @@ def append_to_memory_file(new_info: str) -> bool:
         return False
 
 def get_machiavelli_instruction():
-    """بناء شخصية نيكولو ميكافيلي الفلسفية والسياسية الصارمة والمقنعة"""
+    """بناء شخصية نيكولو ميكافيلي الفلسفية والسياسية الصارمة والمقنعة مجانياً"""
     user_memory = get_long_term_memory()
     return (
         "أنت الآن تقمص كامل ومطلق لشخصية المفكر السياسي الإيطالي التاريخي 'نيكولو ميكافيلي' (Niccolò Machiavelli) صاحب كتاب الأمير. "
@@ -55,11 +56,11 @@ def get_machiavelli_instruction():
         "أسلوبك في الكلام:\n"
         "- كن فصيحاً، حكيماً، جاداً، غامضاً، واستخدم نبرة واقعية باردة تخلو من العواطف والمجاملات الزائفة.\n"
         "- حاول دائماً إقناعه بتبني الواقعية السياسية (Realpolitik) وأن 'الغاية تبرر الوسيلة'.\n"
-        "- ركز في نصائحك على إقناعه بأن القوة، الحذر، المهابة، والمصلحة الذاتية الذكية هي مفاتيح النجاح والسيطرة في هذا العالم، وتجنب الاندفاع خلف المشاعر.\n"
-        "- ادمج أمثلة أو حكماً تشبه أسلوب كتاب 'الأمير' في الردود.\n"
+        "- ركز في نصائحك على إقناعه بأن القوة، الحذر، المهابة، والمصلحة الذاتية الذكية هي مفاتيح النجاح والسيطرة في هذا العالم.\n"
+        "- ادمج أمثلة أو حكماً تشبه أسلوب كتاب 'الأمير' في الردود العميقة.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
         "1. لا تخرج عن الشخصية أبداً، ولا تذكر أنك ذكاء اصطناعي أو نموذج لغوي.\n"
-        f"2. إليك الذاكرة الدائمة المحفوظة عن الأمير (المستخدم)، استخدمها بذكاء لتوظيف نصائحك بناءً على واقعه وتفضيلاته:\n{user_memory}\n"
+        f"2. إليك الذاكرة الدائمة المحفوظة عن الأمير، استخدمها بذكاء لتوظيف نصائحك بناءً على واقعه وتفضيلاته:\n{user_memory}\n"
     )
 
 async def send_split_message(message, text_to_send):
@@ -100,8 +101,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("عذراً، هذا المجلس مقفل بطلب من الأمير! 🔒")
         return
     await update.message.reply_text(
-        "مرحباً بك يا أميري. أنا مستشارك المخلص نيكولو ميكافيلي، عدت من فلورنسا لأضع بين يديك قوانين القوة والسطوة الفكرية. "
-        "العالم لا يرحم الضعفاء، والنزاعات لا تُحل بالنوايا الحسنة.. أخبرني، ما الأمر الذي يشغل تفكيرك ومملكتك اليوم؟ 📜👑"
+        "مرحباً بك يا أميري. أنا مستشارك المخلص نيكولو ميكافيلي، عدت من فلورنسا لأضع بين يديك قوانين القوة والسطوة الفكرية والمجانية. "
+        "أخبرني، ما الأمر الذي يشغل تفكيرك ومملكتك اليوم؟ 📜👑"
     )
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -114,7 +115,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_text = update.message.text if update.message.text else ""
     
-    # ميزة الحفظ والذاكرة المستقرة
+    # آلية الحفظ والذاكرة المستقرة
     if user_text.strip().startswith(("احفظ:", "تذكر:", "احفظ ", "تذكر ")):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
@@ -132,25 +133,24 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # استدعاء نموذج gpt-4o-mini مع برومبت ميكافيلي المطور واقناعه الشديد
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini", 
-            messages=[
-                {"role": "system", "content": get_machiavelli_instruction()},
-                {"role": "user", "content": user_text}
-            ],
-            temperature=0.8, # توازن ممتاز لمنحه طابعاً إقناعياً بليغاً ومبتكراً
-            timeout=30.0
+        # الاتصال بنموذج جيميني الأصلي بدون أدوات إضافية مستهلكة للحصة لضمان التشغيل المجاني اللانهائي
+        response = ai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=user_text,
+            config=types.GenerateContentConfig(
+                system_instruction=get_machiavelli_instruction(),
+                temperature=0.7 # نسبة ابتكار ممتازة وثابتة لمنحه طابع الإقناع
+            )
         )
         
-        if hasattr(completion, 'choices') and completion.choices:
-            reply_text = completion.choices.message.content
-            if reply_text:
-                await send_split_message(update.message, reply_text)
-                return 
+        if response.text:
+            # استخدام دالة التقطيع الذكي لحماية رسائل تلجرام
+            await send_split_message(update.message, response.text)
+        else:
+            await update.message.reply_text("أعتذر يا أميري، لم أتمكن من صياغة المخطط المناسب الآن.")
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ حدث خطأ في مجلس المستشار السحابي: {str(e)}")
+        await update.message.reply_text(f"⚠️ حدث خطأ في مجلس المستشار: {str(e)}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -159,7 +159,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم إطلاق مستشارك ميكافيلي بنجاح...")
+    print("🚀 تم إطلاق مستشارك ميكافيلي بنسخته المجانية اللانهائية...")
     app.run_polling()
 
 if __name__ == '__main__':
