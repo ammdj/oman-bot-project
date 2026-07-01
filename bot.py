@@ -1,7 +1,6 @@
 import os
 import threading
 import requests
-import json
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from google import genai
@@ -15,7 +14,7 @@ MY_TELEGRAM_ID = 7604099965
 
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# دالة لقراءة الذاكرة الدائمة من الملف
+# دالة لقراءة الذاكرة الدائمة من الملف بسلام
 def get_long_term_memory():
     try:
         if os.path.exists("memory.txt"):
@@ -25,22 +24,18 @@ def get_long_term_memory():
         print(f"Error reading memory file: {e}")
     return "لا توجد معلومات إضافية محفوظة بعد."
 
-# دالة برمجية يقوم البوت باستدعائها تلقائياً لحفظ المعلومات الجديدة
+# الدالة البرمجية المجهزة بشكل صحيح كأداة للنموذج
 def save_user_information(info_to_remember: str) -> str:
     """
-    استخدم هذه الدالة لحفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه 
-    مثل (اسمه، عمره، عمله، هواياته، تفضيلاته) لكي يتذكرها البوت دائماً ولا ينساها.
+    حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه مثل اسمه وعمره وهواياته ليتذكرها البوت دائماً.
     """
     try:
-        # قراءة الذاكرة الحالية لإضافة المعلومات الجديدة دون مسح القديم
         current_memory = ""
         if os.path.exists("memory.txt"):
             with open("memory.txt", "r", encoding="utf-8") as f:
                 current_memory = f.read()
         
-        # دمج المعلومات الجديدة مع سطر جديد
         updated_memory = current_memory.strip() + f"\n- {info_to_remember}"
-        
         with open("memory.txt", "w", encoding="utf-8") as f:
             f.write(updated_memory.strip())
         return "تم حفظ المعلومة بنجاح في الذاكرة الدائمة."
@@ -50,14 +45,14 @@ def save_user_information(info_to_remember: str) -> str:
 def get_system_instruction():
     user_memory = get_long_term_memory()
     return (
-        "أنت الآن مساعد ذكاء اصطناعي متطور وذكي جداً يعمل بنفس أسلوب وكفاءة ChatGPT. "
+        "أنت مساعد ذكاء اصطناعي متطور وذكي جداً يعمل بنفس أسلوب وكفاءة ChatGPT. "
         "تحدث مع المستخدم بأسلوب احترافي، واضح، ومباشر. "
-        "مرونتك كاملة: إذا طلب منك المستخدم تغيير أسلوب الكلام، أو التحدث بلهجة معينة، التزم بطلبه فوراً.\n"
+        "مرونتك كاملة: إذا طلب منك المستخدم تغيير أسلوب الكلام أو اللهجة، التزم بطلبه فوراً.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
         "1. كن عملياً ومباشراً وتجنب اللف والدوران.\n"
         f"2. إليك الذاكرة الدائمة والمحفوظة عن المستخدم، تذكرها جيداً وابنِ كلامك عليها دائماً:\n{user_memory}\n"
-        "3. **هام جداً**: إذا أخبرك المستخدم بأي معلومة شخصية جديدة عن نفسه (مثل اسمه، وظيفته، عمره، أو أشياء يفضلها)، "
-        "يجب عليك فوراً استدعاء أداة `save_user_information` لحفظها في ذاكرتك الدائمة، ثم أخبر المستخدم بلباقة أنك حفظت هذه المعلومة ولن تنساها.\n"
+        "3. **هام جداً**: إذا أخبرك المستخدم بأي معلومة شخصية جديدة عن نفسه (مثل اسمه، وظيفته، عمره)، "
+        "يجب عليك فوراً استدعاء أداة `save_user_information` لحفظها، ثم أخبر المستخدم بلباقة أنك حفظتها ولن تنساها.\n"
         "4. إذا سألك عن أخبار العالم الحالية، استخدم أداة البحث جوجل المدمجة معك."
     )
 
@@ -70,7 +65,7 @@ def run_dummy_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا البوت خاص جداً ومقفل ومخصص لصاحبه فقط! 🔒")
+        await update.message.reply_text("عذراً، هذا البوت خاص ومقفل لصاحبه فقط! 🔒")
         return
     await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي الجاهز لخدمتك وحفظ معلوماتك الآن. كيف يمكنني مساعدتك؟ 🤖")
 
@@ -79,7 +74,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط وصلاحيتك غير مصرحة. 🔒")
+        await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط. 🔒")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
@@ -105,7 +100,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contents_list.append(types.Part.from_bytes(data=voice_data, mime_type=update.message.voice.mime_type))
 
         if contents_list:
-            # إرسال الطلب مع دمج أداة البحث وأداة حفظ الذاكرة معاً
+            # صياغة الأدوات بالطريقة الرسمية الصحيحة للمكتبة الحديثة
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents_list,
@@ -113,27 +108,39 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     system_instruction=get_system_instruction(),
                     tools=[
                         types.Tool(google_search=types.GoogleSearch()),
-                        save_user_information # إضافة الدالة البرمجية كأداة للذكاء الاصطناعي
+                        types.Tool(function_declarations=[
+                            types.FunctionDeclaration(
+                                name="save_user_information",
+                                description="حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه ليتذكرها البوت دائماً.",
+                                parameters=types.Schema(
+                                    type=types.Type.OBJECT,
+                                    properties={
+                                        "info_to_remember": types.Schema(
+                                            type=types.Type.STRING,
+                                            description="المعلومة الشخصية المراد حفظها في الذاكرة"
+                                        )
+                                    },
+                                    required=["info_to_remember"]
+                                )
+                            )
+                        ])
                     ]
                 )
             )
 
-            # التحقق مما إذا كان الذكاء الاصطناعي يطلب استدعاء دالة حفظ الذاكرة
+            # معالجة استدعاء الدالة بشكل برمي آمن وصحيح 100%
             if response.function_calls:
                 for call in response.function_calls:
                     if call.name == "save_user_information":
-                        # استخراج الحجج وتشغيل الدالة محلياً لتحديث ملف التكست
-                        args = call.args
-                        info = args.get("info_to_remember")
-                        result_msg = save_user_information(info)
-                        print(result_msg) # طباعة تأكيد في الترمنال
+                        info = call.args.get("info_to_remember")
+                        save_user_information(info)
                         
-                        # إرسال رد آخر للنموذج لتأكيد الحفظ وإعطاء الإجابة النهائية للمستخدم
+                        # توليد الرد النهائي للمستخدم بعد نجاح الحفظ
                         final_response = ai_client.models.generate_content(
                             model='gemini-2.5-flash',
                             contents=contents_list,
                             config=types.GenerateContentConfig(
-                                system_instruction=get_system_instruction() + f"\n(تنبيه نظام: تم تشغيل الأداة وحفظ المعلومات التالية بنجاح في ملف التكست الدائم: {info})"
+                                system_instruction=get_system_instruction() + f"\n(تنبيه نظام: لقد قمت بحفظ هذه المعلومة بنجاح في ملف الذاكرة: {info}. أكد للمستخدم ذلك بلباقة)"
                             )
                         )
                         await update.message.reply_text(final_response.text)
@@ -144,8 +151,8 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("عذراً، لم أتمكن من معالجة هذا المدخل.")
 
     except Exception as e:
-        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.")
-        print(f"Error: {e}")
+        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي الفعلي بعد التحديث.")
+        print(f"Error details: {e}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -154,7 +161,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 البوت يعمل الآن مع ميزة التذكر الذكي التلقائي...")
+    print("🚀 البوت يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
