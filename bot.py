@@ -14,21 +14,24 @@ MY_TELEGRAM_ID = 7604099965
 
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# دالة لقراءة الذاكرة الدائمة من الملف بسلام
+# دالة ذكية لقراءة الذاكرة وإنشاء الملف تلقائياً إذا اختفى
 def get_long_term_memory():
     try:
-        if os.path.exists("memory.txt"):
-            with open("memory.txt", "r", encoding="utf-8") as f:
-                return f.read()
+        if not os.path.exists("memory.txt"):
+            with open("memory.txt", "w", encoding="utf-8") as f:
+                f.write("معلومات المستخدم:\n")
+            return "لا توجد معلومات إضافية محفوظة بعد."
+        
+        with open("memory.txt", "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return content if content else "لا توجد معلومات إضافية محفوظة بعد."
     except Exception as e:
         print(f"Error reading memory file: {e}")
     return "لا توجد معلومات إضافية محفوظة بعد."
 
-# الدالة البرمجية المجهزة بشكل صحيح كأداة للنموذج
+# الدالة البرمجية لحفظ المعلومات
 def save_user_information(info_to_remember: str) -> str:
-    """
-    حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه مثل اسمه وعمره وهواياته ليتذكرها البوت دائماً.
-    """
+    """حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه ليتذكرها البوت دائماً."""
     try:
         current_memory = ""
         if os.path.exists("memory.txt"):
@@ -38,9 +41,9 @@ def save_user_information(info_to_remember: str) -> str:
         updated_memory = current_memory.strip() + f"\n- {info_to_remember}"
         with open("memory.txt", "w", encoding="utf-8") as f:
             f.write(updated_memory.strip())
-        return "تم حفظ المعلومة بنجاح في الذاكرة الدائمة."
+        return "تم حفظ المعلومة بنجاح."
     except Exception as e:
-        return f"فشل حفظ المعلومة بسبب خطأ: {e}"
+        return f"فشل الحفظ: {e}"
 
 def get_system_instruction():
     user_memory = get_long_term_memory()
@@ -51,7 +54,7 @@ def get_system_instruction():
         "التزم بالقواعد التالية بدقة شديدة:\n"
         "1. كن عملياً ومباشراً وتجنب اللف والدوران.\n"
         f"2. إليك الذاكرة الدائمة والمحفوظة عن المستخدم، تذكرها جيداً وابنِ كلامك عليها دائماً:\n{user_memory}\n"
-        "3. **هام جداً**: إذا أخبرك المستخدم بأي معلومة شخصية جديدة عن نفسه (مثل اسمه، وظيفته، عمره)، "
+        "3. **هام جداً**: إذا أخبرك المستخدم بأي معلومة شخصية جديدة عن نفسه (مثل اسمه، وظيفته، عمره، اهتماماته)، "
         "يجب عليك فوراً استدعاء أداة `save_user_information` لحفظها، ثم أخبر المستخدم بلباقة أنك حفظتها ولن تنساها.\n"
         "4. إذا سألك عن أخبار العالم الحالية، استخدم أداة البحث جوجل المدمجة معك."
     )
@@ -100,7 +103,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contents_list.append(types.Part.from_bytes(data=voice_data, mime_type=update.message.voice.mime_type))
 
         if contents_list:
-            # صياغة الأدوات بالطريقة الرسمية الصحيحة للمكتبة الحديثة
+            # تمرير الدالة كأداة بطريقة مباشرة ومبسطة ومضمونة
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents_list,
@@ -108,39 +111,24 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     system_instruction=get_system_instruction(),
                     tools=[
                         types.Tool(google_search=types.GoogleSearch()),
-                        types.Tool(function_declarations=[
-                            types.FunctionDeclaration(
-                                name="save_user_information",
-                                description="حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه ليتذكرها البوت دائماً.",
-                                parameters=types.Schema(
-                                    type=types.Type.OBJECT,
-                                    properties={
-                                        "info_to_remember": types.Schema(
-                                            type=types.Type.STRING,
-                                            description="المعلومة الشخصية المراد حفظها في الذاكرة"
-                                        )
-                                    },
-                                    required=["info_to_remember"]
-                                )
-                            )
-                        ])
+                        save_user_information 
                     ]
                 )
             )
 
-            # معالجة استدعاء الدالة بشكل برمي آمن وصحيح 100%
+            # التحقق من استدعاء الدالة بشكل آمن
             if response.function_calls:
                 for call in response.function_calls:
                     if call.name == "save_user_information":
                         info = call.args.get("info_to_remember")
                         save_user_information(info)
                         
-                        # توليد الرد النهائي للمستخدم بعد نجاح الحفظ
+                        # توليد الرد بعد التحديث
                         final_response = ai_client.models.generate_content(
                             model='gemini-2.5-flash',
                             contents=contents_list,
                             config=types.GenerateContentConfig(
-                                system_instruction=get_system_instruction() + f"\n(تنبيه نظام: لقد قمت بحفظ هذه المعلومة بنجاح في ملف الذاكرة: {info}. أكد للمستخدم ذلك بلباقة)"
+                                system_instruction=get_system_instruction() + f"\n(تنبيه نظام: لقد قمت بحفظ هذه المعلومة بنجاح في ملف الذاكرة: {info}. أكد للمستخدم ذلك بلباقة واحترافية)"
                             )
                         )
                         await update.message.reply_text(final_response.text)
@@ -151,7 +139,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("عذراً، لم أتمكن من معالجة هذا المدخل.")
 
     except Exception as e:
-        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي الفعلي بعد التحديث.")
+        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.")
         print(f"Error details: {e}")
 
 def main():
