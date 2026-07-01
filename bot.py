@@ -14,12 +14,12 @@ MY_TELEGRAM_ID = 7604099965
 
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# دالة ذكية لقراءة الذاكرة وإنشاء الملف تلقائياً إذا اختفى
+# دالة ذكية لقراءة الذاكرة والتأكد من وجود الملف دائماً لسلامة التشغيل
 def get_long_term_memory():
     try:
         if not os.path.exists("memory.txt"):
             with open("memory.txt", "w", encoding="utf-8") as f:
-                f.write("معلومات المستخدم:\n")
+                f.write("")
             return "لا توجد معلومات إضافية محفوظة بعد."
         
         with open("memory.txt", "r", encoding="utf-8") as f:
@@ -29,21 +29,21 @@ def get_long_term_memory():
         print(f"Error reading memory file: {e}")
     return "لا توجد معلومات إضافية محفوظة بعد."
 
-# الدالة البرمجية لحفظ المعلومات
-def save_user_information(info_to_remember: str) -> str:
-    """حفظ وتخزين أي معلومات شخصية هامة يذكرها المستخدم عن نفسه ليتذكرها البوت دائماً."""
+# دالة لحفظ أي معلومة بشكل فوري عند استدعائها
+def append_to_memory_file(new_info: str):
     try:
-        current_memory = ""
+        current = ""
         if os.path.exists("memory.txt"):
             with open("memory.txt", "r", encoding="utf-8") as f:
-                current_memory = f.read()
+                current = f.read().strip()
         
-        updated_memory = current_memory.strip() + f"\n- {info_to_remember}"
+        updated = current + f"\n- {new_info}" if current else f"- {new_info}"
         with open("memory.txt", "w", encoding="utf-8") as f:
-            f.write(updated_memory.strip())
-        return "تم حفظ المعلومة بنجاح."
+            f.write(updated.strip())
+        return True
     except Exception as e:
-        return f"فشل الحفظ: {e}"
+        print(f"Error saving to memory file: {e}")
+        return False
 
 def get_system_instruction():
     user_memory = get_long_term_memory()
@@ -54,9 +54,7 @@ def get_system_instruction():
         "التزم بالقواعد التالية بدقة شديدة:\n"
         "1. كن عملياً ومباشراً وتجنب اللف والدوران.\n"
         f"2. إليك الذاكرة الدائمة والمحفوظة عن المستخدم، تذكرها جيداً وابنِ كلامك عليها دائماً:\n{user_memory}\n"
-        "3. **هام جداً**: إذا أخبرك المستخدم بأي معلومة شخصية جديدة عن نفسه (مثل اسمه، وظيفته، عمره، اهتماماته)، "
-        "يجب عليك فوراً استدعاء أداة `save_user_information` لحفظها، ثم أخبر المستخدم بلباقة أنك حفظتها ولن تنساها.\n"
-        "4. إذا سألك عن أخبار العالم الحالية، استخدم أداة البحث جوجل المدمجة معك."
+        "3. إذا سألك عن أخبار العالم الحالية، استخدم أداة البحث جوجل المدمجة معك."
     )
 
 def run_dummy_server():
@@ -70,7 +68,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص ومقفل لصاحبه فقط! 🔒")
         return
-    await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي الجاهز لخدمتك وحفظ معلوماتك الآن. كيف يمكنني مساعدتك؟ 🤖")
+    await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي المحدث والجاهز لخدمتك الآن. كيف يمكنني مساعدتك؟ 🤖")
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -79,6 +77,18 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط. 🔒")
         return
+
+    # ميزة الفحص الذكي: إذا بدأت رسالتك بـ "احفظ:" أو "تذكر:" يتم حفظها في الذاكرة فوراً ومباشرة
+    user_text = update.message.text if update.message.text else ""
+    if user_text.strip().startswith(("احفظ:", "تذكر:", "احفظ ", "تذكر ")):
+        clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
+        if clean_info:
+            if append_to_memory_file(clean_info):
+                await update.message.reply_text(f"✅ تم حفظ هذه المعلومة بنجاح في ذاكرتي الدائمة: \n`{clean_info}`")
+                return
+            else:
+                await update.message.reply_text("❌ حدث خطأ أثناء محاولة كتابة الملف على السيرفر.")
+                return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
     user_caption = update.message.caption if update.message.caption else ""
@@ -103,43 +113,21 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contents_list.append(types.Part.from_bytes(data=voice_data, mime_type=update.message.voice.mime_type))
 
         if contents_list:
-            # تمرير الدالة كأداة بطريقة مباشرة ومبسطة ومضمونة
+            # هنا نمرر فقط أداة البحث من جوجل وهي مستقرة جداً ولا تسبب أخطاء اتصال
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents_list,
                 config=types.GenerateContentConfig(
                     system_instruction=get_system_instruction(),
-                    tools=[
-                        types.Tool(google_search=types.GoogleSearch()),
-                        save_user_information 
-                    ]
+                    tools=[types.Tool(google_search=types.GoogleSearch())]
                 )
             )
-
-            # التحقق من استدعاء الدالة بشكل آمن
-            if response.function_calls:
-                for call in response.function_calls:
-                    if call.name == "save_user_information":
-                        info = call.args.get("info_to_remember")
-                        save_user_information(info)
-                        
-                        # توليد الرد بعد التحديث
-                        final_response = ai_client.models.generate_content(
-                            model='gemini-2.5-flash',
-                            contents=contents_list,
-                            config=types.GenerateContentConfig(
-                                system_instruction=get_system_instruction() + f"\n(تنبيه نظام: لقد قمت بحفظ هذه المعلومة بنجاح في ملف الذاكرة: {info}. أكد للمستخدم ذلك بلباقة واحترافية)"
-                            )
-                        )
-                        await update.message.reply_text(final_response.text)
-                        return
-
             await update.message.reply_text(response.text)
         else:
             await update.message.reply_text("عذراً، لم أتمكن من معالجة هذا المدخل.")
 
     except Exception as e:
-        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.")
+        await update.message.reply_text("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى التحقق من مفتاح الـ API الخاص بك.")
         print(f"Error details: {e}")
 
 def main():
@@ -149,7 +137,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 البوت يعمل الآن بنجاح...")
+    print("🚀 البوت المستقر يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
