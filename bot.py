@@ -142,9 +142,9 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # الاتصال بجيميني مع إرسال التعليمات المحدثة التي تحتوي على السن الحالي واللقب
+        # 🚀 التحديث الجذري هنا: الانتقال لنموذج الـ Lite الذي يمنح 1500 طلب مجاني يومياً لتجاوز الحظر تماماً
         response = ai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-lite',
             contents=user_text,
             config=types.GenerateContentConfig(
                 system_instruction=get_analyzer_instruction(),
@@ -167,7 +167,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم إطلاق البوت المحلل الاستراتيجي للبارون بنجاح...")
+    print("🚀 تم إطلاق البوت المحلل الاستراتيجي للبارون بنسخته المجانية الموسعة...")
     app.run_polling()
 
 if __name__ == '__main__':
