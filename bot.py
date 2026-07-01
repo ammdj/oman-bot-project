@@ -14,7 +14,7 @@ MY_TELEGRAM_ID = 7604099965
 
 # تهيئة العميل البرمجي لـ OpenRouter
 client = OpenAI(
-    base_url="https://openrouter.ai",
+    base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
 )
 
@@ -34,7 +34,7 @@ def get_long_term_memory():
     return "لا توجد معلومات إضافية محفوظة بعد."
 
 def append_to_memory_file(new_info: str) -> bool:
-    """تحديث ملف الذاكرة فوراً بكتابة السطور الجديدة على السيرفر يدوياً"""
+    """تحديث ملف الذاكرة فوراً بكتابة السطور الجديدة على السيرفر"""
     try:
         current = ""
         if os.path.exists("memory.txt"):
@@ -50,10 +50,10 @@ def append_to_memory_file(new_info: str) -> bool:
         return False
 
 def get_system_instruction():
-    """بناء شخصية البوت الذكية والمطابقة تماماً لأسلوب ChatGPT الخارق"""
+    """بناء شخصية البوت المطابقة تماماً لأسلوب ChatGPT الذكي"""
     user_memory = get_long_term_memory()
     return (
-        "أنت مساعد ذكاء اصطناعي متطور وذكي جداً يعمل بنفس أسلوب وكفاءة مساعد OpenAI الشهير ChatGPT. "
+        "أنت مساعد ذكاء اصطناعي متطور وذكي جداً يعمل بنفس أسلوب وكفاءة ChatGPT من OpenAI. "
         "تحدث مع المستخدم بأسلوب احترافي، واضح، ومباشر. "
         "مرونتك كاملة: إذا طلب منك المستخدم تغيير أسلوب الكلام أو اللهجة، التزم بطلبه فوراً.\n"
         "التزم بالقواعد التالية بدقة شديدة:\n"
@@ -62,7 +62,7 @@ def get_system_instruction():
     )
 
 async def send_split_message(message, text_to_send):
-    """تقطيع الإجابات العملاقة تلقائياً وإرسالها كرسائل متتالية لتفادي حظر تلجرام"""
+    """تقطيع الإجابات الطويلة تلقائياً وإرسالها لتفادي حظر تلجرام"""
     max_length = 4000 
     if len(text_to_send) <= max_length:
         await message.reply_text(text_to_send)
@@ -89,7 +89,7 @@ async def send_split_message(message, text_to_send):
             await message.reply_text(part)
 
 def run_dummy_server():
-    """تشغيل سيرفر الويب لإبقاء البوت مستيقظاً 24 ساعة على Render بدون توقف"""
+    """إبقاء البوت مستيقظاً 24 ساعة على Render بدون توقف"""
     port = int(os.environ.get("PORT", 8000))
     from http.server import SimpleHTTPRequestHandler, HTTPServer
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
@@ -98,21 +98,21 @@ def run_dummy_server():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا البوت خاص جداً وصلاحيتك غير مصرحة! 🔒")
+        await update.message.reply_text("عذراً، هذا البوت مخصص لصاحبه فقط! 🔒")
         return
-    await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي الخارق بنسخته النهائية المستقرة. كيف يمكنني مساعدتك؟ 🤖")
+    await update.message.reply_text("أهلاً بك! أنا مساعدك الذكي بنسخته النهائية المستقرة والمحمية ضد الضغط. كيف يمكنني مساعدتك؟ 🤖")
 
 async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
     if user_id != MY_TELEGRAM_ID:
-        await update.message.reply_text("عذراً، هذا البوت مقفل وخاص بصاحبه فقط. 🔒")
+        await update.message.reply_text("عذراً، هذا البوت خاص بصاحبه فقط. 🔒")
         return
 
     user_text = update.message.text if update.message.text else ""
     
-    # آلية الحفظ السريع الثابتة والمضمونة
+    # آلية التذكر والحفظ السريع
     if user_text.strip().startswith(("احفظ:", "تذكر:", "احفظ ", "تذكر ")):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
@@ -124,46 +124,44 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
     if not update.message.text:
-        await update.message.reply_text("عذراً، النسخة الخارقة تدعم الشات النصي المتطور حالياً.")
+        await update.message.reply_text("عذراً، هذا النموذج مخصص للدردشة النصية الذكية حالياً.")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
-    # قائمة النماذج الذكية التبادلية لضمان عدم توقف البوت نهائياً (ميزة الحصانة ضد الأعطال)
-    models_to_try = [
-        "google/gemini-2.5-flash:free",     # الخيار الأول (الأسرع والأدق)
-        "meta-llama/llama-3.3-70b-instruct:free", # الخيار الاحتياطي الفوري (في حال تعطل سيرفرات جوجل) [4]
-        "deepseek/deepseek-chat:free"       # الخيار الاحتياطي الثالث والأخير
-    ]
+    try:
+        # 🚀 الاستدعاء الذكي عبر الموجه الموحد لتفادي مشاكل الضغط والحظر اليومي نهائياً
+        completion = client.chat.completions.create(
+            extra_headers={
+                "HTTP-Referer": "https://render.com", 
+                "X-Title": "Telegram Bot MultiRouter",
+            },
+            model="openrouter/free",  # الموجه السحابي الموحد والمضمون لجميع النماذج المجانية المتاحة حالياً
+            messages=[
+                {"role": "system", "content": get_system_instruction()},
+                {"role": "user", "content": user_text}
+            ],
+            timeout=30.0
+        )
+        
+        if hasattr(completion, 'choices') and completion.choices:
+            reply_text = completion.choices.message.content
+            if reply_text:
+                await send_split_message(update.message, reply_text)
+                return
+        
+        # في حال أرجعت المنصة نص خطأ عادي بدلاً من كائن كامل
+        await update.message.reply_text(f"⚠️ تنبيه تقني من الخادم السحابي: {str(completion)}")
 
-    for current_model in models_to_try:
-        try:
-            completion = client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "https://render.com", 
-                    "X-Title": "Telegram Bot Ultra",
-                },
-                model=current_model,
-                messages=[
-                    {"role": "system", "content": get_system_instruction()},
-                    {"role": "user", "content": user_text}
-                ],
-                timeout=30.0 # حد أقصى للانتظار لتجنب تعليق البوت
-            )
-            
-            if hasattr(completion, 'choices') and completion.choices:
-                reply_text = completion.choices.message.content
-                if reply_text:
-                    await send_split_message(update.message, reply_text)
-                    return # الخروج فور نجاح العملية والرد
-                    
-        except Exception as api_error:
-            # طباعة الخطأ في الترمنال فقط ومتابعة المحاولة مع النموذج التالي تلقائياً
-            print(f"Model {current_model} failed, switching... Error: {api_error}")
-            continue
-
-    # في حال فشل جميع الموزعين والشركات معاً (حالة نادرة جداً)
-    await update.message.reply_text("⚠️ جميع خوادم الذكاء الاصطناعي المجانية مضغوطة حالياً، يرجى إعادة إرسال الرسالة بعد ثوانٍ قليلة.")
+    except Exception as e:
+        # فحص مشكلة فنية شائعة في مفاتيح OpenRouter الجديدة
+        error_msg = str(e)
+        if "401" in error_msg or "Unauthorized" in error_msg:
+            await update.message.reply_text("❌ خطأ: المفتاح `OPENROUTER_API_KEY` غير مفعل أو به أحرف خاطئة في Render. يرجى إعادة إنشائه.")
+        elif "429" in error_msg:
+            await update.message.reply_text("⚠️ تم استهلاك حد الـ 50 طلباً المجاني لحسابك اليوم على الموجه. يرجى الانتظار حتى الغد أو إضافة 1$ رصيد للحساب لمنحك طلبات غير محدودة.")
+        else:
+            await update.message.reply_text(f"⚠️ حدث خطأ في الاتصال بالخادم: {error_msg}")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -172,7 +170,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 تم تشغيل درع الحماية النهائي للبوت بنجاح...")
+    print("🚀 تم تشغيل نظام التوجيه التلقائي الموحد للبوت...")
     app.run_polling()
 
 if __name__ == '__main__':
