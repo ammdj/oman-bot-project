@@ -7,13 +7,14 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 MY_CLOUD_CHANNEL = os.environ.get("MY_CLOUD_CHANNEL")
 
-# 🔒 المعرف الرقمي الخاص بك (البارون) لضمان خصوصية السحابة
+# 🔒 المعرف الرقمي الخاص بك (البارون) لضمان خصوصية السحابة ومنع المتطفلين
 MY_TELEGRAM_ID = 7604099965  
 
-# ملف محلي مؤقت فقط لفهرسة الأسماء للبحث السريع
+# ملف محلي مؤقت فقط وفوري لفهرسة الأسماء للبحث السريع
 INDEX_FILE = "cloud_index.txt"
 
 def save_to_index(file_type: str, caption: str, message_id: int):
+    """حفظ معلومات الملف في الفهرس السريع لاستدعائه بالبحث لاحقاً"""
     try:
         with open(INDEX_FILE, "a", encoding="utf-8") as f:
             f.write(f"{file_type}|{caption}|{message_id}\n")
@@ -21,6 +22,7 @@ def save_to_index(file_type: str, caption: str, message_id: int):
         print(f"Index error: {e}")
 
 def search_in_index(query: str):
+    """البحث المباشر في الفهرس ومطابقة العناوين المطلوبة للبارون"""
     results = []
     if os.path.exists(INDEX_FILE):
         with open(INDEX_FILE, "r", encoding="utf-8") as f:
@@ -30,6 +32,7 @@ def search_in_index(query: str):
     return results
 
 def run_dummy_server():
+    """تشغيل سيرفر الويب لإبقاء السحابة تعمل 24 ساعة على Render بدون توقف"""
     port = int(os.environ.get("PORT", 8000))
     from http.server import SimpleHTTPRequestHandler, HTTPServer
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
@@ -43,25 +46,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👑 أهلاً بك في سحابتك الشخصية الآمنة يا بارون.\n\n"
         "📦 يمكنك الآن إرسال أي (صور، مستندات، ملاحظات نصية، مقاطع صوتية) وسأقوم بحفظها وتأمينها فوراً مدى الحياة وبمساحة غير محدودة.\n\n"
-        "🔍 للبحث عن أي شيء حفظته لاحقاً، أرسل كلمة: \n`بحث: اسم_الملف`"
+        "🔍 للبحث عن أي شيء حفظته لاحقاً، أرسل كلمة: \n`بحث: اسم_الملف_أو_الملاحظة`"
     )
 
 async def handle_cloud_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    
     if user_id != MY_TELEGRAM_ID:
         await update.message.reply_text("الوصول مرفوض. السحابة مغلقة. 🔒")
         return
 
     if not MY_CLOUD_CHANNEL:
-        await update.message.reply_text("❌ خطأ: يرجى ضبط متغير `MY_CLOUD_CHANNEL` في إعدادات Render أولاً.")
+        await update.message.reply_text("❌ خطأ حرج: يرجى ضبط متغير `MY_CLOUD_CHANNEL` في إعدادات Render أولاً.")
         return
 
+    # استخراج العناوين المصاحبة للملفات
     caption = update.message.caption if update.message.caption else "ملف_بدون_عنوان"
     
     try:
+        # 1. إذا كان المدخل نصاً عادياً (بيانات شخصية، معلومات، أو كلمات مرور)
         if update.message.text:
             text_content = update.message.text.strip()
             
+            # آلية عمل محرك البحث السحابي المدمج
             if text_content.startswith(("بحث:", "بحث ")):
                 query = text_content.replace("بحث:", "").replace("بحث", "").strip()
                 search_results = search_in_index(query)
@@ -69,21 +77,25 @@ async def handle_cloud_storage(update: Update, context: ContextTypes.DEFAULT_TYP
                     await update.message.reply_text(f"🔍 لم أجد أي بيانات مطابقة لـ '{query}' في السحابة يا بارون.")
                     return
                 
-                await update.message.reply_text(f"📂 تم العثور على {len(search_results)} ملفات مطابقة، جاري جلبها...")
+                await update.message.reply_text(f"📂 تم العثور على {len(search_results)} ملفات مطابقة، جاري جلبها فوراً...")
                 for res in search_results:
+                    # جلب الرسالة الأصلية وإعادة توجيهها للبارون عبر الـ ID الخاص بالرسالة المخزنة في القناة
                     await context.bot.forward_message(chat_id=user_id, from_chat_id=MY_CLOUD_CHANNEL, message_id=int(res[2]))
                 return
 
+            # الحفظ المباشر للنصوص داخل القناة السرية وتأمينها
             cloud_msg = await context.bot.send_message(chat_id=MY_CLOUD_CHANNEL, text=f"📝 [بيانات نصية مخزنة]:\n\n{text_content}")
             save_to_index("text", text_content[:30], cloud_msg.message_id)
             await update.message.reply_text("✅ تم تشفير وحفظ البيانات النصية في سحابتك بنجاح يا بارون.")
 
+        # 2. إذا كان المدخل صورة
         elif update.message.photo:
             photo_id = update.message.photo[-1].file_id
             cloud_msg = await context.bot.send_photo(chat_id=MY_CLOUD_CHANNEL, photo=photo_id, caption=f"📸 صورة مخزنة: {caption}")
             save_to_index("photo", caption, cloud_msg.message_id)
             await update.message.reply_text(f"✅ تم حفظ الصورة بنجاح تحت عنوان: `{caption}`")
 
+        # 3. إذا كان المدخل مستند أو ملف مضغوط أو تطبيق
         elif update.message.document:
             doc_id = update.message.document.file_id
             doc_name = update.message.document.file_name
@@ -91,6 +103,7 @@ async def handle_cloud_storage(update: Update, context: ContextTypes.DEFAULT_TYP
             save_to_index("document", f"{caption} {doc_name}", cloud_msg.message_id)
             await update.message.reply_text(f"✅ تم حفظ المستند `{doc_name}` بنجاح.")
 
+        # 4. إذا كان المدخل تسجيل صوتي أو ملف موسيقي
         elif update.message.voice or update.message.audio:
             voice_id = update.message.voice.file_id if update.message.voice else update.message.audio.file_id
             cloud_msg = await context.bot.send_voice(chat_id=MY_CLOUD_CHANNEL, voice=voice_id, caption=f"🎵 ملف صوتي مخزن: {caption}")
@@ -107,7 +120,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 سحابة البارون الشخصية تعمل الآن بأمان كامل...")
+    print("🚀 سحابة البارون الشخصية والآمنة تعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
