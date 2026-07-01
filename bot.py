@@ -12,7 +12,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 # 🔒 المعرف الرقمي الخاص بك (صاحب البوت)
 MY_TELEGRAM_ID = 7604099965  
 
-# تهيئة عميل OpenRouter باستخدام مكتبة OpenAI الرسمية
+# تهيئة العميل البرمجي لـ OpenRouter
 client = OpenAI(
     base_url="https://openrouter.ai",
     api_key=OPENROUTER_API_KEY,
@@ -85,7 +85,7 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_text = update.message.text if update.message.text else ""
     
-    # ميزة التذكر المباشر والمستقر
+    # ميزة تذكر وحفظ المعلومات الشخصية
     if user_text.strip().startswith(("احفظ:", "تذكر:", "احفظ ", "تذكر ")):
         clean_info = user_text.replace("احفظ:", "").replace("تذكر:", "").replace("احفظ", "").replace("تذكر", "").strip()
         if clean_info:
@@ -97,19 +97,19 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
     if not update.message.text:
-        await update.message.reply_text("عذراً، هذا النموذج يدعم الرسائل النصية الشات حالياً بكفاءة عالية.")
+        await update.message.reply_text("عذراً، هذا النموذج يدعم الرسائل النصية فقط حالياً.")
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # الاتصال بـ OpenRouter واستدعاء أقوى وأحدث نموذج مجاني متاح بدون حدود
+        # استدعاء نموذج مستقر جداً ومجاني بالكامل عبر الخادم الموحد لـ OpenRouter
         completion = client.chat.completions.create(
             extra_headers={
                 "HTTP-Referer": "https://render.com", 
                 "X-Title": "Telegram Bot",
             },
-            model="meta-llama/llama-3.3-70b-instruct:free", # النموذج المجاني الخارق والأحدث بالكامل
+            model="google/gemini-2.5-flash:free",  # استخدام النسخة المجانية المستقرة والمدعومة بالكامل
             messages=[
                 {
                     "role": "system",
@@ -122,14 +122,21 @@ async def handle_all_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         )
         
-        reply_text = completion.choices[0].message.content
-        if reply_text:
-            await update.message.reply_text(reply_text)
+        # حماية برمجية: التحقق من شكل الرد قبل قراءته لتفادي خطأ الـ 'str'
+        if hasattr(completion, 'choices') and completion.choices:
+            reply_text = completion.choices[0].message.content
+            if reply_text:
+                await update.message.reply_text(reply_text)
+                return
+        
+        # إذا رجع الرد على هيئة نص عادي (رسالة خطأ من OpenRouter)، يتم طباعتها مباشرة للفحص
+        if isinstance(completion, str):
+            await update.message.reply_text(f"⚠️ تنبيه تقني من الخادم: {completion}")
         else:
-            await update.message.reply_text("أعتذر، لم أتمكن من صياغة رد مناسب.")
+            await update.message.reply_text("أعتذر، واجهت مشكلة في استخراج رد مناسب من الخادم المفتوح.")
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ حدث خطأ في النظام: {str(e)}")
+        await update.message.reply_text(f"⚠️ حدث خطأ في اتصال البوت: {str(e)}")
         print(f"Error details: {e}")
 
 def main():
@@ -139,7 +146,7 @@ def main():
     
     threading.Thread(target=run_dummy_server, daemon=True).start()
     
-    print("🚀 البوت الخارق بنظام OpenRouter يعمل الآن بنجاح...")
+    print("🚀 البوت المستقر بنظام OpenRouter يعمل الآن...")
     app.run_polling()
 
 if __name__ == '__main__':
